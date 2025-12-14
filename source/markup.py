@@ -1,6 +1,12 @@
 import re
 import textwrap
 
+#  **bold**
+#  *italic*
+#  {color}colored text{/}
+#   - bullet points
+
+
 # ======================
 # Inline Markup Pattern
 # ======================

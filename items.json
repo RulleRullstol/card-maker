@@ -12,7 +12,7 @@
       "name": "Kjellberg",
       "type": "Summonnable creature",
       "rarity": "Rare",
-      "description": "Stats:\n- 10 HP \n - 2 ATK \n\nPlayers adjacent to Kjellberg contract the \"RETARDATION\" debuff causing -5 INT \n\n * Can not be resummoned if Kjellberg dies.",
+      "description": "Stats:\n- 10 HP \n- 2 ATK \n\nPlayers adjacent to Kjellberg contract the \"{red}RETARDATION{/}\" debuff causing -5 INT \n\n * Can not be resummoned if Kjellberg dies.",
       "flavor": "Det går generellt inte så bra men det funkar ändå :)",
       "image": "kjello.png"
     }
