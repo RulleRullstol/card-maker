@@ -1,5 +1,4 @@
-# Project Name
-KORT MAKSINI
+# Kort maskin
 ## Description
 
 Generates playing cards
