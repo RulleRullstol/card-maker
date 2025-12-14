@@ -2,7 +2,7 @@
   "items": [
     {
         "name": "Life Crystal",
-        "type": "Consumable (Item)",
+        "type": "*Consumable (Item)*",
         "rarity": "Legendary",
         "description": "Binds a deceased creature's sould to a mortal construct",
         "flavor": "\"Reviving deceased players may only be done by a town magician.\"",
@@ -10,9 +10,9 @@
     },
     {
       "name": "Kjellberg",
-      "type": "Summonnable creature",
-      "rarity": "Rare",
-      "description": "Stats:\n- 10 HP \n- 2 ATK \n\nPlayers adjacent to Kjellberg contract the \"{red}RETARDATION{/}\" debuff causing -5 INT \n\n * Can not be resummoned if Kjellberg dies.",
+      "type": "*Summonnable creature*",
+      "rarity": "{blue}Rare{/}",
+      "description": "Stats:\n- 10 {icon:heart} \n- 2 {icon:melee} \n\nPlayers adjacent to Kjellberg contract the \"{red}RETARDATION{/}\" debuff causing -5 INT \n\n * Can not be resummoned if Kjellberg dies.",
       "flavor": "Det går generellt inte så bra men det funkar ändå :)",
       "image": "kjello.png"
     }

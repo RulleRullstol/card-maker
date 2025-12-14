@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-from markup import render_markup
+from markup import render_markup, COLOR_MAP
+import copy
 
 # ======================
 # Card Constants
@@ -14,7 +15,7 @@ MARGIN = 50
 ART_HEIGHT = 400
 
 BACKGROUND_COLOR = (245, 240, 225, 255)
-TEXT_COLOR = (40, 30, 20, 255)
+TEXT_COLOR = COLOR_MAP["default"]
 
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -36,37 +37,78 @@ fonts_dict = {
 }
 
 # ======================
+# Helper: Auto Scale Font
+# ======================
+def render_markup_autoscale(
+    text,
+    card,
+    draw,
+    x,
+    y,
+    max_width,
+    fonts,
+    default_color,
+    max_height,
+    min_font_size=12,
+    line_spacing=6,
+):
+    """Reduce font size until the text fits within max_height."""
+    font_size = fonts["normal"].size
+    temp_fonts = copy.deepcopy(fonts)
+
+    while font_size >= min_font_size:
+        for k, f in temp_fonts.items():
+            temp_fonts[k] = ImageFont.truetype(f.path, font_size)
+
+        # Create a dummy image to measure height
+        dummy_img = Image.new("RGBA", (max_width, max_height))
+        dummy_draw = ImageDraw.Draw(dummy_img)
+        y_end = render_markup(text, dummy_img, dummy_draw, x, y, max_width, temp_fonts, default_color, line_spacing=line_spacing, measure_only=True)
+
+        if y_end - y <= max_height:
+            # Fits, break
+            break
+
+        font_size -= 1  # reduce size and retry
+
+    # Now draw on real image
+    render_markup(text, card, draw, x, y, max_width, temp_fonts, default_color, line_spacing=line_spacing)
+
+# ======================
 # Card Generator
 # ======================
 def generate_card(item):
-    # Base card
     card = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), BACKGROUND_COLOR)
     draw = ImageDraw.Draw(card)
 
     # ---- Title ----
-    draw.text(
-        (CARD_WIDTH // 2, MARGIN),
+    render_markup(
         item["name"],
-        fill=TEXT_COLOR,
-        font=title_font,
-        anchor="mm"
+        card,
+        draw,
+        MARGIN,
+        MARGIN,
+        CARD_WIDTH - (MARGIN * 2),
+        {"normal": title_font, "bold": title_font, "italic": title_font},
+        TEXT_COLOR
     )
 
     # ---- Subtitle ----
-    subtitle = f'{item["type"]} • {item["rarity"]}'
-    draw.text(
-        (CARD_WIDTH // 2, MARGIN + 60),
-        subtitle,
-        fill=TEXT_COLOR,
-        font=subtitle_font,
-        anchor="mm"
+    render_markup(
+        f'{item["type"]} • {item["rarity"]}',
+        card,
+        draw,
+        MARGIN,
+        MARGIN + 70,
+        CARD_WIDTH - (MARGIN * 2),
+        {"normal": subtitle_font, "bold": subtitle_font, "italic": subtitle_font},
+        TEXT_COLOR
     )
 
     # ---- Artwork ----
     art_path = Path("item_images") / item["image"]
     art = Image.open(art_path).convert("RGBA")
 
-    # Resize proportionally
     art_ratio = art.width / art.height
     target_width = CARD_WIDTH - (MARGIN * 2)
     target_height = ART_HEIGHT
@@ -80,33 +122,38 @@ def generate_card(item):
 
     art = art.resize((new_width, new_height))
     art_x = (CARD_WIDTH - new_width) // 2
-    art_y = MARGIN + 100
+    art_y = MARGIN + 120
     card.paste(art, (art_x, art_y), art)
 
-    # ---- Description ----
+    # ---- Description with auto-scaling ----
     text_start_y = art_y + ART_HEIGHT + 30
-    render_markup(
+    max_text_height = CARD_HEIGHT - text_start_y - 180  # leave space for flavor & margins
+    render_markup_autoscale(
         item["description"],
+        card,
         draw,
         MARGIN,
         text_start_y,
         CARD_WIDTH - (MARGIN * 2),
         fonts_dict,
-        TEXT_COLOR
+        TEXT_COLOR,
+        max_text_height,
     )
 
     # ---- Flavor text ----
-    wrapped_flavor = item.get("flavor", "")
-    if wrapped_flavor:
-        from markup import COLOR_MAP
-        render_markup(
-            f'— {wrapped_flavor}',
+    if "flavor" in item:
+        flavor_y = CARD_HEIGHT - 150
+        max_flavor_height = 120  # adjust as needed
+        render_markup_autoscale(
+            f'— {item["flavor"]}',
+            card,
             draw,
             MARGIN,
-            CARD_HEIGHT - 150,
+            flavor_y,
             CARD_WIDTH - (MARGIN * 2),
             fonts_dict,
-            color := COLOR_MAP.get("default", TEXT_COLOR)
+            TEXT_COLOR,
+            max_flavor_height
         )
 
     # ---- Border ----
