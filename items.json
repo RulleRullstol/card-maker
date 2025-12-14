@@ -1,0 +1,8 @@
+{
+  "name": "Life Crystal",
+  "type": "Consumable (Item)",
+  "rarity": "Legendary",
+  "description": "Binds a deceased creature's sould to a mortal construct",
+  "flavor": "\"Reviving deceased players may only be done by a town magician.\"",
+  "image": "lifecrystal.png"
+}
