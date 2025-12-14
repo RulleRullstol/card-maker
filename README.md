@@ -1,11 +1,10 @@
-# Project Name
-KORT MAKSINI
+# Kort maskin
 ## Description
 
 Generates playing cards
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [license](license) file for details.
 
 GNU GPL v3.0
