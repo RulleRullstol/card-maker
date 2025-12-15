@@ -20,7 +20,7 @@
     "x": 135,
     "y": 780,
     "width": 600,
-    "height": 50
+    "height": 20
   },
 
   "title": {
@@ -32,7 +32,7 @@
   
   "description": {
     "x": 97,
-    "y": 918,
+    "y": 925,
     "width": 669,
     "height": 322
   },
