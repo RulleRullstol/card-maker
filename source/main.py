@@ -23,11 +23,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # ======================
 # Fonts
 # ======================
-title_font = ImageFont.truetype("fonts/UncialAntiqua-Regular.ttf", 48)
-subtitle_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 26)
-body_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 28)
-bold_font = ImageFont.truetype("fonts/LibreBaskerville-Bold.ttf", 28)
-italic_font = ImageFont.truetype("fonts/LibreBaskerville-Italic.ttf", 28)
+title_font = ImageFont.truetype("fonts/UncialAntiqua-Regular.ttf", 70)
+subtitle_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 30)
+body_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 30)
+bold_font = ImageFont.truetype("fonts/LibreBaskerville-Bold.ttf", 30)
+italic_font = ImageFont.truetype("fonts/LibreBaskerville-Italic.ttf", 30)
 
 fonts_dict = {
     "normal": body_font,
