@@ -5,14 +5,12 @@ from markup import render_markup, COLOR_MAP
 import copy
 
 # ======================
-# Card Constants
+# Configuration
 # ======================
-
-
 DEBUG_LAYOUT = True
 GRID_WIDTH = 50
 GRID_HEIGHT = 50
-GRID_COLOR = (0, 255, 255, 120)  # cyan, semi-transparent
+GRID_COLOR = (0, 255, 255, 120)
 GRID_THICKNESS = 1
 
 
@@ -30,7 +28,7 @@ OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ======================
-# Load Fonts
+# Fonts
 # ======================
 title_font = ImageFont.truetype("fonts/UncialAntiqua-Regular.ttf", 48)
 subtitle_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 26)
@@ -46,7 +44,7 @@ fonts_dict = {
 }
 
 # ======================
-# Helper: Auto Scale Font
+# Auto Scale Font
 # ======================
 def render_markup_autoscale(
     text,
@@ -61,7 +59,7 @@ def render_markup_autoscale(
     min_font_size=12,
     line_spacing=6,
 ):
-    """Reduce font size until the text fits within max_height."""
+    """Reduce font size until < max_height."""
     font_size = fonts["normal"].size
     temp_fonts = copy.deepcopy(fonts)
 
@@ -69,18 +67,17 @@ def render_markup_autoscale(
         for k, f in temp_fonts.items():
             temp_fonts[k] = ImageFont.truetype(f.path, font_size)
 
-        # Create a dummy image to measure height
+        # create dummy image to measure size
         dummy_img = Image.new("RGBA", (max_width, max_height))
         dummy_draw = ImageDraw.Draw(dummy_img)
         y_end = render_markup(text, dummy_img, dummy_draw, x, y, max_width, temp_fonts, default_color, line_spacing=line_spacing, measure_only=True)
 
         if y_end - y <= max_height:
-            # Fits, break
             break
 
-        font_size -= 1  # reduce size and retry
+        font_size -= 1  # retry
 
-    # Now draw on real image
+    # Draw text
     render_markup(text, card, draw, x, y, max_width, temp_fonts, default_color, line_spacing=line_spacing)
 
 # ======================
@@ -90,12 +87,11 @@ def debug_draw_box(draw, box, color=(255, 255, 255, 255), label=None):
     if not DEBUG_LAYOUT:
         return
 
-    # ---- Draw grid ONCE ----
-    # We attach a flag to the draw object (safe in Python)
+    # Draw grid
     if not hasattr(draw, "_grid_drawn"):
         img_w, img_h = draw.im.size
 
-        # Vertical grid lines
+        # Vertica
         x = 0
         while x <= img_w:
             draw.line(
@@ -105,7 +101,7 @@ def debug_draw_box(draw, box, color=(255, 255, 255, 255), label=None):
             )
             x += GRID_WIDTH
 
-        # Horizontal grid lines
+        # Horizontal
         y = 0
         while y <= img_h:
             draw.line(
@@ -115,9 +111,9 @@ def debug_draw_box(draw, box, color=(255, 255, 255, 255), label=None):
             )
             y += GRID_HEIGHT
 
-        draw._grid_drawn = True  # mark as done
+        draw._grid_drawn = True  # have we done this?
 
-    # ---- Draw the box ----
+    # Boxes
     x, y = box["x"], box["y"]
     w, h = box["width"], box["height"]
 
@@ -135,7 +131,7 @@ def debug_draw_box(draw, box, color=(255, 255, 255, 255), label=None):
         )
 
 # ======================
-# render markup centered box
+# render text in centered box, also does markup
 # ======================
 def render_markup_centered_box(
     text,
@@ -146,7 +142,7 @@ def render_markup_centered_box(
     color
 ):
 
-    # --- Render to dummy to measure full bounding box ---
+    # Render to dummy to measure full bounding box
     dummy = Image.new("RGBA", (box["width"], box["height"]), (0, 0, 0, 0))
     dummy_draw = ImageDraw.Draw(dummy)
 
@@ -164,16 +160,16 @@ def render_markup_centered_box(
 
     bbox = dummy.getbbox()
     if not bbox:
-        return  # nothing to draw
+        return 
 
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
 
-    # --- Compute centered position ---
+    # Find center
     start_x = box["x"] + (box["width"] - text_width) // 2
     start_y = box["y"] + (box["height"] - text_height) // 2
 
-    # --- Render for real ---
+    # Render as normal with adjusted position
     render_markup(
         text,
         card,
@@ -236,7 +232,7 @@ def generate_card(item):
     template_name = item.get("template", "default")
     layout, assets = load_template(template_name)
 
-    # ---- Frame recolor FIRST ----
+    # Color frame
     rarity = item.get("rarity", "Common")
     rarity_defs = layout.get("rarity_hsv", {})
     rarity_def = rarity_defs.get(rarity, rarity_defs.get("Common"))
@@ -250,16 +246,16 @@ def generate_card(item):
     else:
         frame = assets["frame"]
 
-    # ---- Start card from recolored frame ----
+    # Begin composite with bg frame
     card = frame.copy()
 
-    # ---- Composite base onto frame ----
+    # Base onto frame
     card.alpha_composite(assets["base"])
 
-    # ---- Draw final ----
+    # Draw
     draw = ImageDraw.Draw(card)
 
-    # ---- Title ----
+    # Title
     debug_draw_box(draw, layout["title"], label="TITLE")
     render_markup_centered_box(
         item["name"],
@@ -271,7 +267,7 @@ def generate_card(item):
     )
 
 
-    # ---- Subtitle ----
+    # Subtitle
     debug_draw_box(draw, layout["subtitle"], label="SUBTITLE")
     render_markup_centered_box(
         f'{item["type"]} • {item["rarity"]}',
@@ -282,7 +278,7 @@ def generate_card(item):
         TEXT_COLOR
     )
 
-    # ---- Artwork ----
+    # Art
     art = Image.open(Path("item_images") / item["image"]).convert("RGBA")
     art = art.resize(
         (layout["art"]["width"], layout["art"]["height"])
@@ -301,7 +297,7 @@ def generate_card(item):
             art
         )
 
-    # ---- Description ----
+    # Description
     debug_draw_box(draw, layout["description"], label="DESCRIPTION")
     render_markup_autoscale(
         item["description"],
@@ -315,7 +311,7 @@ def generate_card(item):
         layout["description"]["height"]
     )
 
-    # ---- Flavor ----
+    # Flavor text
     if "flavor" in item:
         debug_draw_box(draw, layout["flavor"], label="FLAVOR")
         render_markup_autoscale(
@@ -330,14 +326,14 @@ def generate_card(item):
             layout["flavor"]["height"]
         )
 
-    # ---- Save ----
+    # Save
     filename = item["name"].lower().replace(" ", "_") + ".png"
     card.save(OUTPUT_DIR / filename, dpi=(DPI, DPI))
     print(f"Generated: {filename}")
 
 
 # ======================
-# Load JSON and Generate
+# Load items.json and generate cards
 # ======================
 with open("items.json", "r", encoding="utf-8") as f:
     data = json.load(f)

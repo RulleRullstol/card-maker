@@ -18,11 +18,6 @@ INLINE_PATTERN = re.compile(
     r"(\*\*.*?\*\*|\*.*?\*|\{.*?\}.*?\{\/\}|\{icon:.*?\})"
 )
 
-# ======================
-# Color Definitions
-# ======================
-# You can reference these colors in your JSON using {color_name}text{/}
-# Example: "{red}Danger{/}" → will render the word "Danger" in red
 COLOR_MAP = {
     "red": (150, 30, 30, 255),
     "blue": (40, 60, 160, 255),
@@ -31,11 +26,6 @@ COLOR_MAP = {
     "default": (40, 30, 20, 255)
 }
 
-# ======================
-# Icon Definitions
-# ======================
-# Map icon names to image files in your project
-# Example JSON: "- Deals {icon:fire} fire damage"
 ICON_MAP = {
     "fire": "icons/fire.png",
     "lightning": "icons/lightning.png",
@@ -57,20 +47,6 @@ ICON_MAP = {
 # Parse Inline Markup
 # ======================
 def parse_inline(text):
-    """
-    Splits a string into markup tokens. Each token is a tuple:
-    - ('bold', content)
-    - ('italic', content)
-    - ('color', content, color_name)
-    - ('icon', icon_name)
-    - ('normal', content)
-    
-    Examples:
-        "**Bold** text" → [('bold', 'Bold'), ('normal', ' text')]
-        "*Italic* example" → [('italic', 'Italic'), ('normal', ' example')]
-        "{red}Danger{/}" → [('color', 'Danger', 'red')]
-        "{icon:fire}" → [('icon', 'fire')]
-    """
     parts = INLINE_PATTERN.split(text)
     tokens = []
 
@@ -110,30 +86,7 @@ def render_markup(
     wrap_width=45,
     measure_only=False
 ):
-    """
-    Draws markup text onto a PIL ImageDraw object.
 
-    Parameters:
-    - text: string containing markup
-    - draw: PIL.ImageDraw.Draw object
-    - x, y: top-left coordinates for rendering
-    - max_width: maximum allowed width
-    - fonts: dict of fonts {'normal':..., 'bold':..., 'italic':...}
-    - default_color: fallback color
-    - icon_size: size of inline icons
-    - line_spacing: vertical spacing between lines
-    - wrap_width: approximate max characters per line (used by textwrap)
-
-    Supported Markup Syntax Examples:
-    - Bold: "**Bold Text**"
-    - Italic: "*Italic Text*"
-    - Color: "{red}Danger{/}" → uses COLOR_MAP["red"]
-    - Bullet: "- This is a bullet point" → renders "•" at line start
-    - Icon: "{icon:fire}" → renders inline icon image from ICON_MAP
-
-    Example JSON description:
-    "- Deals {icon:fire} fire damage\n- **Critical** strike deals {icon:lightning} lightning damage\n- Heal {icon:heart} 10 HP"
-    """
     cursor_y = y
     paragraphs = text.split("\n\n")  # split paragraphs on double newline
 
