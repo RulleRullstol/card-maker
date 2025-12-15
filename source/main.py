@@ -7,7 +7,7 @@ import copy
 # ======================
 # Configuration
 # ======================
-DEBUG_LAYOUT = False
+DEBUG_LAYOUT = True
 
 GRID_WIDTH = 50
 GRID_HEIGHT = 50
@@ -24,10 +24,10 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # Fonts
 # ======================
 title_font = ImageFont.truetype("fonts/UncialAntiqua-Regular.ttf", 70)
-subtitle_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 30)
-body_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 30)
-bold_font = ImageFont.truetype("fonts/LibreBaskerville-Bold.ttf", 30)
-italic_font = ImageFont.truetype("fonts/LibreBaskerville-Italic.ttf", 30)
+subtitle_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 35)
+body_font = ImageFont.truetype("fonts/LibreBaskerville-Regular.ttf", 35)
+bold_font = ImageFont.truetype("fonts/LibreBaskerville-Bold.ttf", 35)
+italic_font = ImageFont.truetype("fonts/LibreBaskerville-Italic.ttf", 35)
 
 fonts_dict = {
     "normal": body_font,
@@ -241,14 +241,23 @@ def generate_card(item):
     )
 
     debug_draw_box(draw, layout["subtitle"], label="SUBTITLE")
-    render_markup_centered_box(
-        f'{item["type"]} • {item["rarity"]}',
-        card,
-        draw,
-        layout["subtitle"],
-        {"normal": subtitle_font, "bold": subtitle_font, "italic": subtitle_font},
-        TEXT_COLOR
-    )
+    render_markup(
+    item["type"],
+    card,
+    draw,
+    layout["subtitle"]["x"],
+    layout["subtitle"]["y"],
+    layout["subtitle"]["width"],
+    {
+        "normal": subtitle_font,
+        "bold": bold_font,
+        "italic": italic_font
+    },
+    TEXT_COLOR,
+    align="center"
+)
+
+
 
     art = Image.open(Path("item_images") / item["image"]).convert("RGBA")
     art = art.resize((layout["art"]["width"], layout["art"]["height"]))

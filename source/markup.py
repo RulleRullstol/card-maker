@@ -101,6 +101,48 @@ def explode_text_tokens(tokens):
 
     return exploded
 
+# ======================
+# Draw outlines text - for color
+# ======================
+def draw_text_with_outline(draw, position, text, font, fill, outline=(0, 0, 0, 255), outline_width=1):
+    x, y = position
+
+    # Draw outline
+    for dx in range(-outline_width, outline_width + 1):
+        for dy in range(-outline_width, outline_width + 1):
+            if dx == 0 and dy == 0:
+                continue
+            draw.text((x + dx, y + dy), text, font=font, fill=outline)
+
+    # Draw main text
+    draw.text((x, y), text, font=font, fill=fill)
+
+# ======================
+# Helper for centering text
+# ======================
+def measure_token_line(tokens, draw, fonts, icon_size):
+    width = 0
+
+    for token in tokens:
+        if token[0] == "icon":
+            width += icon_size + 4
+            continue
+
+        content, style = token[1], token[2]
+
+        font = fonts["normal"]
+        if style["bold"] and style["italic"]:
+            font = fonts.get("bolditalic", fonts["bold"])
+        elif style["bold"]:
+            font = fonts["bold"]
+        elif style["italic"]:
+            font = fonts["italic"]
+
+        width += draw.textlength(content, font=font)
+
+    return width
+
+
 
 # ======================
 # Parse Inline Markup
@@ -202,7 +244,8 @@ def render_markup(
     icon_size=28,
     line_spacing=6,
     wrap_width=45,
-    measure_only=False
+    measure_only=False,
+    align="left"
 ):
 
     cursor_y = y
@@ -226,7 +269,18 @@ def render_markup(
             )
 
             for wrapped_tokens in wrapped_lines:
-                cursor_x = x + (22 if is_bullet else 0)
+                line_width = measure_token_line(
+                    wrapped_tokens,
+                    draw,
+                    fonts,
+                    icon_size
+                )
+
+                if align == "center":
+                    cursor_x = x + (max_width - line_width) // 2
+                else:
+                    cursor_x = x + (22 if is_bullet else 0)
+
 
                 if is_bullet:
                     draw.text((x, cursor_y), "•", fill=default_color, font=fonts["normal"])
@@ -255,8 +309,21 @@ def render_markup(
 
                     color = COLOR_MAP.get(style["color"], default_color)
 
-                    draw.text((cursor_x, cursor_y), content, fill=color, font=font)
+                    if style["color"] is not None:
+                        draw_text_with_outline(
+                            draw,
+                            (cursor_x, cursor_y),
+                            content,
+                            font,
+                            fill=color,
+                            outline=(0, 0, 0, 255),
+                            outline_width= max(1, font.size // 18)
+                        )
+                    else:
+                        draw.text((cursor_x, cursor_y), content, fill=color, font=font)
+
                     cursor_x += draw.textlength(content, font=font)
+
 
 
                 cursor_y += fonts["normal"].size + line_spacing
