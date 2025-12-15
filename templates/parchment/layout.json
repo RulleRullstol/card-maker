@@ -2,10 +2,10 @@
   "size": [863, 1317],
   
   "rarity_hsv": {
-    "Common":    { "h": 0,   "s": 0   },
-    "Uncommon":  { "h": 85,  "s": 120 },
-    "Rare":      { "h": 140, "s": 130 },
-    "Legendary": { "h": 35,  "s": 160 }
+    "Common":    { "h": 30,   "s": 255},
+    "Uncommon":  { "h": 85,  "s": 255},
+    "Rare":      { "h": 145, "s": 255},
+    "Legendary": { "h": 10,  "s": 255}
   },
 
   "art": {

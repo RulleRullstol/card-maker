@@ -3,7 +3,7 @@
     {
         "template": "parchment",
         "name": "Life Crystal",
-        "type": "*Consumable (Item)*",
+        "type": "Consumable Item",
         "rarity": "Legendary",
         "description": "Binds a deceased creature's sould to a mortal construct",
         "flavor": "\"Reviving deceased players may only be done by a town magician.\"",
@@ -12,8 +12,8 @@
     {
       "template": "parchment",
       "name": "Kjellberg",
-      "type": "*Summon*",
-      "rarity": "{blue}Rare{/}",
+      "type": "Summon",
+      "rarity": "Rare",
       "description": "- 2 {icon:shield}:\n- 8 {icon:heart} \n- 2 {icon:melee} \n\nPlayers adjacent to Kjellberg contract the {red}RETARDATION{/} debuff **(-5 INT)**.",
       "flavor": "\"Det går generellt inte så bra men det funkar ändå :)\"",
       "image": "kjello.png"
