@@ -43,29 +43,147 @@ ICON_MAP = {
     "eye": "icons/eye.png"
 }
 
+ #======================
+# Fix to keep token effect when wrapping
+# ======================
+def wrap_tokens(tokens, draw, fonts, max_width, icon_size, space_width):
+    lines = []
+    current_line = []
+    current_width = 0
+
+    for token in tokens:
+        if token[0] == "icon":
+            token_width = icon_size + 4
+            token_text = None
+        else:
+            content, style = token[1], token[2]
+            font = fonts["normal"]
+            if style["bold"] and style["italic"]:
+                font = fonts.get("bolditalic", fonts["bold"])
+            elif style["bold"]:
+                font = fonts["bold"]
+            elif style["italic"]:
+                font = fonts["italic"]
+
+            token_width = draw.textlength(content, font=font)
+            token_text = content
+
+        if current_width + token_width > max_width and current_line:
+            lines.append(current_line)
+            current_line = []
+            current_width = 0
+
+        current_line.append(token)
+        current_width += token_width
+
+    if current_line:
+        lines.append(current_line)
+
+    return lines
+
+def explode_text_tokens(tokens):
+    # Splits text tokens into word-level tokens while preserving style.
+    exploded = []
+
+    for token in tokens:
+        if token[0] == "icon":
+            exploded.append(token)
+            continue
+
+        content, style = token[1], token[2]
+
+        # split but keep spaces
+        parts = re.split(r"(\s+)", content)
+
+        for part in parts:
+            if part:
+                exploded.append(("text", part, style))
+
+    return exploded
+
+
 # ======================
 # Parse Inline Markup
 # ======================
 def parse_inline(text):
-    parts = INLINE_PATTERN.split(text)
     tokens = []
+    i = 0
+    stack = []
 
-    for part in parts:
-        if not part:
+    def current_style():
+        style = {"bold": False, "italic": False, "color": None}
+        for s in stack:
+            if s == "bold":
+                style["bold"] = True
+            elif s == "italic":
+                style["italic"] = True
+            elif s.startswith("color:"):
+                style["color"] = s.split(":", 1)[1]
+        return style
+
+    buffer = ""
+
+    while i < len(text):
+        # ---- Bold ----
+        if text.startswith("**", i):
+            if buffer:
+                tokens.append(("text", buffer, current_style()))
+                buffer = ""
+            if stack and stack[-1] == "bold":
+                stack.pop()
+            else:
+                stack.append("bold")
+            i += 2
             continue
-        if part.startswith("**"):
-            tokens.append(("bold", part[2:-2]))
-        elif part.startswith("*"):
-            tokens.append(("italic", part[1:-1]))
-        elif part.startswith("{icon:"):
-            icon_name = part[6:-1]  # remove {icon: ... }
-            tokens.append(("icon", icon_name))
-        elif part.startswith("{"):
-            color = part[1:part.index("}")]
-            content = part[part.index("}") + 1:-3]  # remove {/}
-            tokens.append(("color", content, color))
-        else:
-            tokens.append(("normal", part))
+
+        # ---- Italic ----
+        if text.startswith("*", i):
+            if buffer:
+                tokens.append(("text", buffer, current_style()))
+                buffer = ""
+            if stack and stack[-1] == "italic":
+                stack.pop()
+            else:
+                stack.append("italic")
+            i += 1
+            continue
+
+        # ---- Color open ----
+        if text.startswith("{", i) and "}" in text[i:]:
+            end = text.find("}", i)
+            tag = text[i+1:end]
+
+            if tag == "/":
+                if stack and stack[-1].startswith("color:"):
+                    if buffer:
+                        tokens.append(("text", buffer, current_style()))
+                        buffer = ""
+                    stack.pop()
+                i = end + 1
+                continue
+
+            if tag.startswith("icon:"):
+                if buffer:
+                    tokens.append(("text", buffer, current_style()))
+                    buffer = ""
+                tokens.append(("icon", tag.split(":", 1)[1]))
+                i = end + 1
+                continue
+
+            # color start
+            if buffer:
+                tokens.append(("text", buffer, current_style()))
+                buffer = ""
+            stack.append(f"color:{tag}")
+            i = end + 1
+            continue
+
+        # ---- Normal char ----
+        buffer += text[i]
+        i += 1
+
+    if buffer:
+        tokens.append(("text", buffer, current_style()))
 
     return tokens
 
@@ -96,54 +214,50 @@ def render_markup(
             is_bullet = line.startswith("- ")
             line = line[2:] if is_bullet else line
 
-            wrapped_lines = textwrap.wrap(line, width=wrap_width)
+            tokens = explode_text_tokens(parse_inline(line))
 
-            for wrapped in wrapped_lines:
+            wrapped_lines = wrap_tokens(
+                tokens,
+                draw,
+                fonts,
+                max_width - (22 if is_bullet else 0),
+                icon_size,
+                draw.textlength(" ", font=fonts["normal"])
+            )
+
+            for wrapped_tokens in wrapped_lines:
                 cursor_x = x + (22 if is_bullet else 0)
+
                 if is_bullet:
                     draw.text((x, cursor_y), "•", fill=default_color, font=fonts["normal"])
 
-                tokens = parse_inline(wrapped)
-                for token in tokens:
-                    kind = token[0]
-
-                    if kind == "bold":
-                        font = fonts["bold"]
-                        color = default_color
-                        content = token[1]
-                        draw.text((cursor_x, cursor_y), content, fill=color, font=font)
-                        cursor_x += draw.textlength(content, font=font)
-                    elif kind == "italic":
-                        font = fonts["italic"]
-                        color = default_color
-                        content = token[1]
-                        draw.text((cursor_x, cursor_y), content, fill=color, font=font)
-                        cursor_x += draw.textlength(content, font=font)
-                    elif kind == "color":
-                        font = fonts["normal"]
-                        content = token[1]
-                        color = COLOR_MAP.get(token[2], default_color)
-                        draw.text((cursor_x, cursor_y), content, fill=color, font=font)
-                        cursor_x += draw.textlength(content, font=font)
-                    elif kind == "icon":
+                for token in wrapped_tokens:
+                    if token[0] == "icon":
                         if not measure_only:
                             icon_path = ICON_MAP.get(token[1])
                             if icon_path:
                                 icon_img = Image.open(icon_path).convert("RGBA")
                                 icon_img = icon_img.resize((icon_size, icon_size))
+                                image.paste(icon_img, (int(cursor_x), int(cursor_y)), icon_img)
+                        cursor_x += icon_size + 4
+                        continue
 
-                                image.paste(
-                                    icon_img,
-                                    (int(cursor_x), int(cursor_y)),
-                                    icon_img
-                                )
+                    # text token
+                    content, style = token[1], token[2]
 
-                        cursor_x += icon_size + 4 # space after icon
-                    else:  # normal text
-                        font = fonts["normal"]
-                        content = token[1]
-                        draw.text((cursor_x, cursor_y), content, fill=default_color, font=font)
-                        cursor_x += draw.textlength(content, font=font)
+                    font = fonts["normal"]
+                    if style["bold"] and style["italic"]:
+                        font = fonts.get("bolditalic", fonts["bold"])
+                    elif style["bold"]:
+                        font = fonts["bold"]
+                    elif style["italic"]:
+                        font = fonts["italic"]
+
+                    color = COLOR_MAP.get(style["color"], default_color)
+
+                    draw.text((cursor_x, cursor_y), content, fill=color, font=font)
+                    cursor_x += draw.textlength(content, font=font)
+
 
                 cursor_y += fonts["normal"].size + line_spacing
 

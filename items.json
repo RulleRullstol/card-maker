@@ -14,8 +14,8 @@
       "name": "Kjellberg",
       "type": "Summon",
       "rarity": "Rare",
-      "description": "- 2 {icon:shield}:\n- 8 {icon:heart} \n- 2 {icon:melee} \n\nPlayers adjacent to Kjellberg contract the {red}RETARDATION{/} debuff **(-5 INT)**.",
-      "flavor": "\"Det går generellt inte så bra men det funkar ändå :)\"",
+      "description": "- **2** {icon:shield}:\n- **8** {icon:heart} \n- **2** {icon:melee} \n\nPlayers adjacent to *Kjellberg* contract the **{red}RETARDATION{/}** debuff **(-5 INT)**.",
+      "flavor": "\"*Det går generellt inte så bra men det funkar ändå :)*\"",
       "image": "kjello.png"
     }
   ]

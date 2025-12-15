@@ -7,7 +7,7 @@ import copy
 # ======================
 # Configuration
 # ======================
-DEBUG_LAYOUT = True
+DEBUG_LAYOUT = False
 
 GRID_WIDTH = 50
 GRID_HEIGHT = 50
