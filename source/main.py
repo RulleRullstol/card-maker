@@ -7,6 +7,15 @@ import copy
 # ======================
 # Card Constants
 # ======================
+
+
+DEBUG_LAYOUT = True
+GRID_WIDTH = 50
+GRID_HEIGHT = 50
+GRID_COLOR = (0, 255, 255, 120)  # cyan, semi-transparent
+GRID_THICKNESS = 1
+
+
 CARD_WIDTH = 750
 CARD_HEIGHT = 1050
 DPI = 300
@@ -75,101 +84,256 @@ def render_markup_autoscale(
     render_markup(text, card, draw, x, y, max_width, temp_fonts, default_color, line_spacing=line_spacing)
 
 # ======================
-# Card Generator
+# Debug box layout
+# ======================
+def debug_draw_box(draw, box, color=(255, 255, 255, 255), label=None):
+    if not DEBUG_LAYOUT:
+        return
+
+    # ---- Draw grid ONCE ----
+    # We attach a flag to the draw object (safe in Python)
+    if not hasattr(draw, "_grid_drawn"):
+        img_w, img_h = draw.im.size
+
+        # Vertical grid lines
+        x = 0
+        while x <= img_w:
+            draw.line(
+                [(x, 0), (x, img_h)],
+                fill=GRID_COLOR,
+                width=GRID_THICKNESS
+            )
+            x += GRID_WIDTH
+
+        # Horizontal grid lines
+        y = 0
+        while y <= img_h:
+            draw.line(
+                [(0, y), (img_w, y)],
+                fill=GRID_COLOR,
+                width=GRID_THICKNESS
+            )
+            y += GRID_HEIGHT
+
+        draw._grid_drawn = True  # mark as done
+
+    # ---- Draw the box ----
+    x, y = box["x"], box["y"]
+    w, h = box["width"], box["height"]
+
+    draw.rectangle(
+        [x, y, x + w, y + h],
+        outline=color,
+        width=2
+    )
+
+    if label:
+        draw.text(
+            (x + 4, y + 4),
+            label,
+            fill=color
+        )
+
+# ======================
+# render markup centered box
+# ======================
+def render_markup_centered_box(
+    text,
+    card,
+    draw,
+    box,
+    fonts,
+    color
+):
+
+    # --- Render to dummy to measure full bounding box ---
+    dummy = Image.new("RGBA", (box["width"], box["height"]), (0, 0, 0, 0))
+    dummy_draw = ImageDraw.Draw(dummy)
+
+    render_markup(
+        text,
+        dummy,
+        dummy_draw,
+        0,
+        0,
+        box["width"],
+        fonts,
+        color,
+        measure_only=False
+    )
+
+    bbox = dummy.getbbox()
+    if not bbox:
+        return  # nothing to draw
+
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    # --- Compute centered position ---
+    start_x = box["x"] + (box["width"] - text_width) // 2
+    start_y = box["y"] + (box["height"] - text_height) // 2
+
+    # --- Render for real ---
+    render_markup(
+        text,
+        card,
+        draw,
+        start_x,
+        start_y,
+        box["width"],
+        fonts,
+        color
+    )
+
+
+# ======================
+# HSV recolor
+# ======================
+def recolor_frame_hsv(frame, hue, saturation):
+    frame = frame.convert("RGBA")
+    r, g, b, a = frame.split()
+
+    hsv = Image.merge("RGB", (r, g, b)).convert("HSV")
+    h, s, v = hsv.split()
+
+    h = Image.new("L", h.size, hue)
+    s = Image.new("L", s.size, saturation)
+
+    recolored = Image.merge("HSV", (h, s, v)).convert("RGBA")
+    recolored.putalpha(a)
+
+    return recolored
+
+
+# ======================
+# Loading templates
+# ======================
+
+def load_template(name):
+    base = Path("templates") / name
+
+    with open(base / "layout.json", "r") as f:
+        layout = json.load(f)
+
+    images = {
+        "base": Image.open(base / "base.png").convert("RGBA"),
+        "frame": Image.open(base / "frame.png").convert("RGBA")
+    }
+
+    mask_path = base / layout["art"].get("mask", "")
+    images["mask"] = (
+        Image.open(mask_path).convert("L")
+        if mask_path.exists()
+        else None
+    )
+
+    return layout, images
+
+# ======================
+# Skapa kort
 # ======================
 def generate_card(item):
-    card = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), BACKGROUND_COLOR)
+    template_name = item.get("template", "default")
+    layout, assets = load_template(template_name)
+
+    # ---- Frame recolor FIRST ----
+    rarity = item.get("rarity", "Common")
+    rarity_defs = layout.get("rarity_hsv", {})
+    rarity_def = rarity_defs.get(rarity, rarity_defs.get("Common"))
+
+    if rarity_def:
+        frame = recolor_frame_hsv(
+            assets["frame"],
+            rarity_def.get("h", 0),
+            rarity_def.get("s", 0)
+        )
+    else:
+        frame = assets["frame"]
+
+    # ---- Start card from recolored frame ----
+    card = frame.copy()
+
+    # ---- Composite base onto frame ----
+    card.alpha_composite(assets["base"])
+
+    # ---- Draw final ----
     draw = ImageDraw.Draw(card)
 
     # ---- Title ----
-    render_markup(
+    debug_draw_box(draw, layout["title"], label="TITLE")
+    render_markup_centered_box(
         item["name"],
         card,
         draw,
-        MARGIN,
-        MARGIN,
-        CARD_WIDTH - (MARGIN * 2),
+        layout["title"],
         {"normal": title_font, "bold": title_font, "italic": title_font},
         TEXT_COLOR
     )
 
+
     # ---- Subtitle ----
-    render_markup(
+    debug_draw_box(draw, layout["subtitle"], label="SUBTITLE")
+    render_markup_centered_box(
         f'{item["type"]} • {item["rarity"]}',
         card,
         draw,
-        MARGIN,
-        MARGIN + 70,
-        CARD_WIDTH - (MARGIN * 2),
+        layout["subtitle"],
         {"normal": subtitle_font, "bold": subtitle_font, "italic": subtitle_font},
         TEXT_COLOR
     )
 
     # ---- Artwork ----
-    art_path = Path("item_images") / item["image"]
-    art = Image.open(art_path).convert("RGBA")
+    art = Image.open(Path("item_images") / item["image"]).convert("RGBA")
+    art = art.resize(
+        (layout["art"]["width"], layout["art"]["height"])
+    )
 
-    art_ratio = art.width / art.height
-    target_width = CARD_WIDTH - (MARGIN * 2)
-    target_height = ART_HEIGHT
-
-    if art_ratio > target_width / target_height:
-        new_width = target_width
-        new_height = int(target_width / art_ratio)
+    if assets["mask"]:
+        card.paste(
+            art,
+            (layout["art"]["x"], layout["art"]["y"]),
+            assets["mask"]
+        )
     else:
-        new_height = target_height
-        new_width = int(target_height * art_ratio)
+        card.paste(
+            art,
+            (layout["art"]["x"], layout["art"]["y"]),
+            art
+        )
 
-    art = art.resize((new_width, new_height))
-    art_x = (CARD_WIDTH - new_width) // 2
-    art_y = MARGIN + 120
-    card.paste(art, (art_x, art_y), art)
-
-    # ---- Description with auto-scaling ----
-    text_start_y = art_y + ART_HEIGHT + 30
-    max_text_height = CARD_HEIGHT - text_start_y - 180  # leave space for flavor & margins
+    # ---- Description ----
+    debug_draw_box(draw, layout["description"], label="DESCRIPTION")
     render_markup_autoscale(
         item["description"],
         card,
         draw,
-        MARGIN,
-        text_start_y,
-        CARD_WIDTH - (MARGIN * 2),
+        layout["description"]["x"],
+        layout["description"]["y"],
+        layout["description"]["width"],
         fonts_dict,
         TEXT_COLOR,
-        max_text_height,
+        layout["description"]["height"]
     )
 
-    # ---- Flavor text ----
+    # ---- Flavor ----
     if "flavor" in item:
-        flavor_y = CARD_HEIGHT - 150
-        max_flavor_height = 120  # adjust as needed
+        debug_draw_box(draw, layout["flavor"], label="FLAVOR")
         render_markup_autoscale(
             f'— {item["flavor"]}',
             card,
             draw,
-            MARGIN,
-            flavor_y,
-            CARD_WIDTH - (MARGIN * 2),
+            layout["flavor"]["x"],
+            layout["flavor"]["y"],
+            layout["flavor"]["width"],
             fonts_dict,
             TEXT_COLOR,
-            max_flavor_height
-        )
-
-    # ---- Border ----
-    border_color = (120, 90, 60, 255)
-    border_width = 4
-    for i in range(border_width):
-        draw.rectangle(
-            [i, i, CARD_WIDTH - i - 1, CARD_HEIGHT - i - 1],
-            outline=border_color
+            layout["flavor"]["height"]
         )
 
     # ---- Save ----
     filename = item["name"].lower().replace(" ", "_") + ".png"
-    output_path = OUTPUT_DIR / filename
-    card.save(output_path, dpi=(DPI, DPI))
-    print(f"Generated: {output_path}")
+    card.save(OUTPUT_DIR / filename, dpi=(DPI, DPI))
+    print(f"Generated: {filename}")
 
 
 # ======================

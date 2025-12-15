@@ -1,6 +1,7 @@
 {
   "items": [
     {
+        "template": "parchment",
         "name": "Life Crystal",
         "type": "*Consumable (Item)*",
         "rarity": "Legendary",
@@ -9,6 +10,7 @@
         "image": "lifecrystal.png"
     },
     {
+      "template": "parchment",
       "name": "Kjellberg",
       "type": "*Summonnable creature*",
       "rarity": "{blue}Rare{/}",

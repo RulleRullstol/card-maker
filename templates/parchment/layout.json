@@ -1,0 +1,46 @@
+{
+  "size": [863, 1317],
+  
+  "rarity_hsv": {
+    "Common":    { "h": 0,   "s": 0   },
+    "Uncommon":  { "h": 85,  "s": 120 },
+    "Rare":      { "h": 140, "s": 130 },
+    "Legendary": { "h": 35,  "s": 160 }
+  },
+
+  "art": {
+    "x": 250,
+    "y": 150,
+    "width": 360,
+    "height": 418,
+    "mask": "card1.png"
+  },
+
+  "subtitle": {
+    "x": 135,
+    "y": 770,
+    "width": 600,
+    "height": 50
+  },
+
+  "title": {
+    "x": 135,
+    "y": 700,
+    "width": 575,
+    "height": 100
+  },
+  
+  "description": {
+    "x": 97,
+    "y": 918,
+    "width": 669,
+    "height": 322
+  },
+
+    "flavor": {
+    "x": 97,
+    "y": 1150,
+    "width": 669,
+    "height": 100
+  }
+}
